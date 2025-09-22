@@ -57,6 +57,7 @@ public class CountryCodeConverter {
      */
     public String fromCountryCode(String code) {
         // TODO Task B: update this code to use an instance variable to return the correct value
+        if (code == null) return null;
         return countryCodeToCountry.get(code);
     }
 
@@ -67,6 +68,7 @@ public class CountryCodeConverter {
      */
     public String fromCountry(String country) {
         // TODO Task B: update this code to use an instance variable to return the correct value
+        if (country == null) return null;
         return countryToCountryCode.get(country);
     }
 
