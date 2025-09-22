@@ -14,7 +14,7 @@ import java.util.Map;
  * - converting language codes to their names <br/>
  * - converting language names to their codes
  */
-public class LanguageCodeConverter {
+public class  LanguageCodeConverter {
 
     private final Map<String, String> languageCodeToLanguage = new HashMap<>();
     private final Map<String, String> languageToLanguageCode = new HashMap<>();

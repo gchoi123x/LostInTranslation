@@ -12,9 +12,9 @@ public class JSONTranslatorTest {
 
     @Test
     public void getLanguageCodes() {
-       List<String> countryLanguages = jsonTranslator.getLanguageCodes();
-       assertEquals(35, countryLanguages.size(),
-               "There should be 35 languages but got " + countryLanguages.size());
+        List<String> countryLanguages = jsonTranslator.getLanguageCodes();
+        assertEquals(35, countryLanguages.size(),
+                "There should be 35 languages but got " + countryLanguages.size());
     }
 
     @Test
