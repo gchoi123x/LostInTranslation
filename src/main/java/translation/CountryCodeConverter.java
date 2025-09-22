@@ -1,89 +1,93 @@
 package translation;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
-
-/**
- * This class provides the service of converting country codes to their names and back.
- */
 public class CountryCodeConverter {
 
-    private Map<String, String> countryCodeToCountry = new HashMap<>();
-    private Map<String, String> countryToCountryCode = new HashMap<>();
+    private final Map<String, String> countryCodeToCountry = new HashMap<>();
+    private final Map<String, String> countryToCountryCode = new HashMap<>();
 
-    /**
-     * Default constructor that loads the country codes from "country-codes.txt"
-     * in the resources folder.
-     */
     public CountryCodeConverter() {
         this("country-codes.txt");
     }
 
-    /**
-     * Overloaded constructor that allows us to specify the filename to load the country code data from.
-     * @param filename the name of the file in the resources folder to load the data from
-     * @throws RuntimeException if the resources file can't be loaded properly
-     */
     public CountryCodeConverter(String filename) {
+        // Try root and package-relative locations on the classpath.
+        String[] candidates = { "/" + filename, "/translation/" + filename };
+        InputStream in = null;
+        String chosen = null;
+        for (String cand : candidates) {
+            in = CountryCodeConverter.class.getResourceAsStream(cand);
+            if (in != null) { chosen = cand; break; }
+        }
+        if (in == null) {
+            throw new RuntimeException("Resource not found on classpath. Tried: " + Arrays.toString(candidates) +
+                    "\nPlace " + filename + " under src/main/resources/ (or resources/translation/).");
+        }
 
-        try {
-            List<String> lines = Files.readAllLines(Paths.get(getClass()
-                    .getClassLoader().getResource(filename).toURI()));
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+            // ---- Parse header to find indices ----
+            String header = br.readLine();
+            if (header == null) throw new RuntimeException("Empty " + filename);
+            header = header.replace("\uFEFF", ""); // strip BOM if present
+            String delim = header.contains("\t") ? "\t" : ",";
 
-            Iterator<String> iterator = lines.iterator();
-            iterator.next(); // skip the first line
-            while (iterator.hasNext()) {
-                String line = iterator.next().trim();
+            String[] cols = header.split(delim, -1);
+            int countryIdx = -1, alpha3Idx = -1;
+            for (int i = 0; i < cols.length; i++) {
+                String h = cols[i].trim().toLowerCase();
+                if (h.equals("country") || h.equals("name")) countryIdx = i;
+                if (h.startsWith("alpha-3")) alpha3Idx = i;
+            }
+            if (countryIdx < 0 || alpha3Idx < 0) {
+                throw new RuntimeException("Header must contain 'Country' and 'Alpha-3 code' columns. Got: " + Arrays.toString(cols));
+            }
+
+            // ---- Read rows ----
+            String line;
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
                 if (line.isEmpty() || line.startsWith("#")) continue;
 
-                // Expect: <alpha-3-code>\t<country name>
-                String[] parts = line.split("\t", 2);
-                if (parts.length < 2) continue;
+                String[] parts = line.split(delim, -1);
+                if (parts.length <= Math.max(countryIdx, alpha3Idx)) continue;
 
-                String code = parts[0].trim().toLowerCase();
-                String name = parts[1].trim();
+                String name = parts[countryIdx].trim();
+                String code = parts[alpha3Idx].replace("\uFEFF", "").trim().toLowerCase();
 
-                countryCodeToCountry.put(code, name);
-                countryToCountryCode.put(name.toLowerCase(), code);
+                if (!name.isEmpty() && !code.isEmpty()) {
+                    countryCodeToCountry.put(code, name);
+                    countryToCountryCode.put(name.toLowerCase(), code);
+                }
             }
-        }
-        catch (IOException | URISyntaxException ex) {
-            throw new RuntimeException(ex);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load/parse resource: " + chosen, e);
         }
 
+        if (countryCodeToCountry.isEmpty()) {
+            throw new RuntimeException("Parsed 0 countries from resource; check file format and location.");
+        }
     }
 
-    /**
-     * Return the name of the country for the given country code.
-     * @param code the 3-letter code of the country
-     * @return the name of the country corresponding to the code
-     */
+    /** Return the name of the country for the given 3-letter code. */
     public String fromCountryCode(String code) {
         if (code == null) return null;
         return countryCodeToCountry.get(code.trim().toLowerCase());
     }
 
-    /**
-     * Return the code of the country for the given country name.
-     * @param country the name of the country
-     * @return the 3-letter code of the country
-     */
+    /** Return the 3-letter code for the given country name. */
     public String fromCountry(String country) {
         if (country == null) return null;
         return countryToCountryCode.get(country.trim().toLowerCase());
     }
 
-    /**
-     * Return how many countries are included in this country code converter.
-     * @return how many countries are included in this country code converter.
-     */
+    /** Return how many countries are included. */
     public int getNumCountries() {
         return countryCodeToCountry.size();
     }
