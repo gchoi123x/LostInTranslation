@@ -1,7 +1,8 @@
 package translation;
 
 import javax.swing.*;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 
 // TODO Task D: Update the GUI for the program to align with UI shown in the README example.
@@ -51,7 +52,6 @@ public class GUI {
                         result = "no translation found!";
                     }
                     resultLabel.setText(result);
-
                 }
 
             });
